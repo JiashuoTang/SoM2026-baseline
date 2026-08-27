@@ -1,0 +1,23 @@
+FastDepthV2 weight loaded:./weights/FastDepthV2_L1_Best.pth
+model initialized!
+================================================================================
+Task 1: LoS/NLoS classification
+Input shapes            : [(1, 2, 24, 8, 128)]
+Output shape            : (1, 2)
+FLOPs                   : 121,479,164 (0.121479 GFLOPs)
+MACs                    : 59,817,984 (0.059818 GMACs)
+Params(total/fine-tuned): 15,713,661 / 49,154
+================================================================================
+Task 2: MM-aided channel prediction
+Input shapes            : [(1, 2, 128, 64), (1, 3, 224, 224), (1, 2)]
+Output shape            : (1, 2, 128, 64)
+FLOPs                   : 3,834,712,328 (3.834712 GFLOPs)
+MACs                    : 1,911,851,648 (1.911852 GMACs)
+Params(total/fine-tuned): 15,713,661 / 97,792
+================================================================================
+Task 3: CSI-aided depth estimation
+Input shapes            : [(1, 2, 32, 64), (1, 3, 224, 224)]
+Output shape            : (1, 1, 224, 224)
+FLOPs                   : 657,913,144 (0.657913 GFLOPs)
+MACs                    : 320,490,560 (0.320491 GMACs)
+Params(total/fine-tuned): 15,713,661 / 1,351,467
