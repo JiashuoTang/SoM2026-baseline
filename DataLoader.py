@@ -84,32 +84,26 @@ class Dataset_task_2(Dataset):
     def __init__(self, file_path, itr=500, SEED=42, is_show=1, dataset_name="test", snr_db=None):
         super(Dataset_task_2, self).__init__()
         # Shuffle and Segmentation Dateset
-        if dataset_name=="train":
-            db = hdf5storage.loadmat(file_path + f'/X_train.mat')[f'X_train']
-            db2 = hdf5storage.loadmat(file_path + f'/imgs_train.mat')[f'imgs_train']
-            db3 = hdf5storage.loadmat(file_path + f'/location_train.mat')[f'location_train']
-            self.H_prev = torch.tensor(db, dtype=torch.complex128)
-            self.H_target = self.H_prev
-        if dataset_name=="test":
-            db = hdf5storage.loadmat(file_path + f'/X_test_prev.mat')[f'X_test_prev']
-            db1 = hdf5storage.loadmat(file_path + f'/X_test.mat')[f'X_test']
-            db2 = hdf5storage.loadmat(file_path + f'/imgs_test.mat')[f'imgs_test']
-            db3 = hdf5storage.loadmat(file_path + f'/location_test.mat')[f'location_test']
-            self.H_prev = torch.tensor(db, dtype=torch.complex128)
-            self.H_target = torch.tensor(db1, dtype=torch.complex128)
+        db = hdf5storage.loadmat(file_path + f'/X_{dataset_name}_prev.mat')[f'X_{dataset_name}_prev']
+        db1 = hdf5storage.loadmat(file_path + f'/X_{dataset_name}.mat')[f'X_{dataset_name}']
+        db2 = hdf5storage.loadmat(file_path + f'/imgs_{dataset_name}.mat')[f'imgs_{dataset_name}']
+        db3 = hdf5storage.loadmat(file_path + f'/location_{dataset_name}.mat')[f'location_{dataset_name}']
+
         Batch_num = db.shape[0]
         np.random.seed(SEED)
         idx = np.arange(Batch_num)
         idx = idx[:itr]
         np.random.shuffle(idx)
 
+        self.H_prev = torch.tensor(db, dtype=torch.complex128)
+        self.H_target = torch.tensor(db1, dtype=torch.complex128)
         self.H_prev = LoadBatch(self.H_prev)
         self.H_target = LoadBatch(self.H_target)
         self.imgs = torch.tensor(db2, dtype=torch.float32).permute(0, 3, 1, 2)
         self.imgs = F.interpolate(self.imgs, size=(224, 224), mode='bilinear', align_corners=False) / 255.0
         self.location = torch.tensor(db3, dtype=torch.float32)
 
-        # self.H += torch.randn_like(self.H) * torch.sqrt(torch.mean(self.H**2) * 10**(-snr_db/10.0))
+        # self.H_prev += torch.randn_like(self.H_prev) * torch.sqrt(torch.mean(self.H_prev**2) * 10**(-snr_db/10.0))
         
         self.H_prev = self.H_prev[idx, ...]
         self.H_target = self.H_target[idx, ...]
@@ -138,8 +132,8 @@ class Dataset_task_2(Dataset):
 
 
 def data_load_task_2(args):
-    train_data = Dataset_task_2(args.data_path + '/Task2', itr=500, dataset_name="train")
-    test_data = Dataset_task_2(args.data_path + '/Task2', itr=100, dataset_name="test")
+    train_data = Dataset_task_2(args.data_path + '/Task2', itr=500, dataset_name="train", snr_db=args.snr_db)
+    test_data = Dataset_task_2(args.data_path + '/Task2', itr=100, dataset_name="test", snr_db=args.snr_db)
 
     train_data = th.utils.data.DataLoader(train_data, num_workers=8, batch_size=args.batch_size, shuffle=False,
                                           pin_memory=False, prefetch_factor=4)
