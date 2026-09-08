@@ -14,14 +14,37 @@ Delta **+0.03** (described in session as ~0.04).
 Task 2 not submitted — persistence baseline ready, NMSE 0.0100 locally.
 Task 3 not submitted — `dataset/Task3/` absent locally.
 
-### Metric direction — resolved
+### Metric — the challenge uses BINARY F1, not macro
 
-Higher is better, so the leaderboard reports **macro F1**, not the `1 - F1` that
-`train.py:78` computes internally. Evidence: the physics model is clearly better
-by local CV (0.880 vs 0.428) and scored *higher* on the private set (0.75 vs
-0.72). Under a `1 - F1` column a better model would have scored lower.
+The Task 1 spec defines TP as *correctly predicts the LoS class*, so precision,
+recall and F1 are computed with **LoS as the positive class**. `train.py:78`
+computes macro F1 instead, and every result recorded here before 2026-09-08 used
+macro because it followed the repo.
 
-So 0.75 macro F1, against a 0.375 majority-class floor.
+The two metrics rank approaches identically on this data, so earlier conclusions
+stand. What changes is the floor and the baseline:
+
+| predictor | binary F1 (LoS) | macro F1 |
+|---|---|---|
+| all NLoS (majority class) | **0.000** | 0.375 |
+| all LoS (trivial positive) | **0.571** | 0.286 |
+| WiFo2 linear probe — repo baseline | **0.000** | 0.375 |
+
+The repo's baseline head never predicts LoS once (confusion `[[6,0],[4,0]]`), so
+it scores **binary F1 0.000** — no true positives at all. Macro F1 reported 0.375
+for the same predictions because it credits the NLoS class it gets right for
+free. Accuracy is 0.60 for *every* variant tested and is useless here.
+
+Floor to beat is **0.571**, not 0.375.
+
+Direction is confirmed higher-is-better: the physics model is better locally and
+scored higher privately (0.75 vs 0.72). Under a `1 - F1` column it would have
+gone down.
+
+**Unresolved:** whether the leaderboard reports binary or macro. The baseline
+head scores 0.000 binary locally but 0.72 privately — impossible for the same
+metric unless the private class balance differs sharply from 6/4. Weak evidence
+the leaderboard is macro. Check the column header if it is visible.
 
 ### Local CV badly overestimates
 
@@ -88,14 +111,24 @@ Every number below is a 10-seed mean unless labelled LOOCV.
 
 `notebook/task1_physics.ipynb`, `physics_features.py`.
 
-| approach | macro F1 (5-fold, 10 seeds) | LOOCV |
+Scored under the challenge metric (binary F1, LoS positive); macro shown because
+it is what the earlier notebooks reported.
+
+| approach | binary F1 | macro F1 |
 |---|---|---|
-| majority class | 0.375 | — |
-| WiFo2 linear probe — the repo baseline | 0.428 | — |
-| WiFo2 mean-pool probe (SGD head) | 0.561 | — |
-| WiFo2 mean-pool + logistic regression | 0.748 | 0.762 |
-| physics features alone (k=1) | 0.811 | 0.792 |
-| **physics + WiFo2 mean-pool, k=3** | **0.880** | **0.890** |
+| all NLoS (majority class) | 0.000 | 0.375 |
+| WiFo2 linear probe — the repo baseline | 0.169 | 0.428 |
+| WiFo2 mean-pool probe (SGD head) | 0.475 | 0.561 |
+| all LoS (trivial positive) | 0.571 | 0.286 |
+| WiFo2 mean-pool + logistic regression | 0.679 | 0.748 |
+| physics features alone (k=1) | 0.771 | 0.811 |
+| **physics + WiFo2 mean-pool, k=3** | **0.846** | **0.880** |
+
+Best model LOOCV: precision 1.000, recall 0.750, binary F1 0.857, confusion
+`[[6,0],[1,3]]` — zero false positives, one LoS sample missed of four.
+
+(The 0.169 for the linear probe is the 10-seed mean; at seed 42 alone it is
+0.000.)
 
 Two independent gains stack. Swapping the SGD-trained linear head for
 `StandardScaler + SelectKBest + LogisticRegression` moved the *same* WiFo2
@@ -199,11 +232,64 @@ Expect the same for Task 3: submit it blank and the error names the count.
 
 `np.int64` is not JSON-serialisable — cast with `.tolist()` or `int()`.
 
+## Negative results — tested, did not work
+
+Recording these so they are not retried.
+
+### Augmentation makes things worse
+
+Pool of 10 originals + 32 augmented copies each, augmented copies confined to the
+training fold. Macro F1:
+
+| features | no aug | with aug |
+|---|---|---|
+| WiFo2 mean-pool (k=3) | 0.748 | **0.421** |
+| physics (k=1) | 0.811 | **0.735** |
+| physics + WiFo2 (k=3) | 0.880 | **0.667** |
+
+Consistent across every feature set and every k. Two reasons:
+
+1. **The physics features are invariant to most of it by construction.** Measured
+   change from a global phase rotation, amplitude scaling, or antenna
+   permutation: **0.0%** on `first_tap_frac`, `rms_delay`, `temporal_corr`,
+   `K_max`. Only AWGN moves them (7% on `rms_delay`, 14% on `K_max`) — and that
+   movement is corruption, shifting training features away from the clean
+   validation distribution.
+2. **WiFo2 was never trained to be invariant** to phase or antenna order, so
+   augmented copies land in a region of feature space no real sample occupies.
+
+Augmentations tried: global phase, amplitude scale 0.5-2x, antenna permutation,
+AWGN 15-30 dB, time roll.
+
+### Threshold tuning does not help
+
+The best model sits at precision 1.000, recall 0.750, so lowering the decision
+threshold below 0.5 looked like free recall. Swept 0.20-0.80, 10 seeds:
+
+| threshold | binary F1 | std | precision | recall |
+|---|---|---|---|---|
+| 0.35 | 0.823 | 0.125 | 0.840 | 0.825 |
+| 0.45 | 0.856 | 0.094 | 0.935 | 0.800 |
+| **0.50 (default)** | **0.846** | **0.032** | 0.975 | 0.750 |
+| 0.60 | 0.808 | 0.078 | 0.975 | 0.700 |
+
+Best is +0.010 at threshold 0.45, well inside the noise. More telling: std is
+0.032 at the default and rises to 0.094-0.125 as the threshold drops. The default
+is both near-best and by far the most stable. LOOCV peaks at 0.889 (threshold
+0.35, TP=4 FP=1 FN=0) but 5-fold gives 0.823 +/- 0.125 there — the protocols
+disagree by more than the gain, the signature of tuning noise.
+
+High precision is also the right operational choice: a false LoS call breaks the
+precoding rank assumption and can drop the link, while a false NLoS call only
+wastes spatial degrees of freedom.
+
 ## Next
 
 - ~~settle the metric direction~~ — resolved, higher is better (macro F1)
 - ~~submit the physics+WiFo2 predictions~~ — done, 0.72 -> 0.75
-- augmentation: global phase rotation, AWGN at known SNR, antenna permutation. All label-preserving, turns 10 samples into thousands
+- ~~augmentation~~ — tested, hurts. See negative results
+- ~~threshold tuning~~ — tested, +0.01 inside noise. See negative results
+- confirm whether the leaderboard column is binary or macro F1
 - more physics: per-antenna K-factor spread, Doppler from the time axis, angular spread via spatial FFT
 - MAE pretraining on the 20 unlabelled test samples — self-supervised, adapts the backbone with no labels
 - submit Task 2 persistence — 0.0100 NMSE for zero training
