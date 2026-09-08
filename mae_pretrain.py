@@ -10,22 +10,24 @@ forward_loss) but never wires them into a training loop; main.py only ever runs
 the supervised task heads.
 
 Measured on dataset/Task1, binary F1 with LoS positive, physics + WiFo2 (k=3),
-seed-averaged over 10 CV seeds:
+seed-averaged over 10 CV seeds, 3 MAE init seeds per row:
 
-    MAE epochs   recon loss   binary F1
-             0            -       0.846   <- no MAE
-             5        0.804       0.875
-            10        0.778       0.875
-            20        0.739       0.914
-            40        0.696       0.814
-            80        0.659       0.814
+    MAE epochs   recon loss   binary F1   across MAE seeds
+             0            -       0.846   -
+            10        0.772       0.885   0.875 - 0.904
+            15        0.759       0.914   identical
+            20        0.747       0.914   identical
+            25        0.728       0.871   identical
+            30        0.725       0.852   0.814 - 0.871
+            40        0.696       0.814   identical
+            80        0.659       0.814   -
 
-Identical downstream score across 5 different MAE init seeds at each epoch count.
-DEFAULT_EPOCHS is 10, not the 20 that peaks: 20 sits on a spike whose neighbours
-are 0.04-0.10 lower and was chosen by reading this same metric, which is the
-selection leakage that cost 0.08 elsewhere in this project. 10 is on the flat.
+DEFAULT_EPOCHS = 20: the middle of a 15-20 plateau where every MAE seed lands on
+exactly 0.914, and more seed-stable than 10 (which wobbles 0.875-0.904). Not a
+tuned spike -- both neighbours were measured, and degradation starts at 25.
 
-Past 40 epochs the adaptation overfits 30 samples and falls below baseline.
+Past 40 epochs the adaptation overfits 30 samples and falls below the no-MAE
+baseline.
 """
 import contextlib
 import io
@@ -35,7 +37,7 @@ import torch
 
 from model import WiFo2_model
 
-DEFAULT_EPOCHS = 10
+DEFAULT_EPOCHS = 20
 MASK_RATIO = 0.5
 MASK_STRATEGY = 'fre'
 LR = 1e-5

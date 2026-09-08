@@ -357,35 +357,36 @@ wires them into a training loop.
 
 Binary F1, physics + WiFo2 at k=3, seed-averaged:
 
-| MAE epochs | recon loss | binary F1 | CV std |
+Re-swept with the module's own code path, 3 MAE init seeds per row:
+
+| MAE epochs | recon loss | binary F1 | across MAE seeds |
 |---|---|---|---|
-| 0 (no MAE) | — | 0.846 | 0.032 |
-| 5 | 0.804 | 0.875 | 0.070 |
-| **10 (default)** | 0.778 | **0.875-0.904** | 0.070-0.085 |
-| 20 | 0.739 | 0.914 | 0.070 |
-| 40 | 0.696 | 0.814 | 0.052 |
-| 80 | 0.659 | 0.814 | 0.052 |
+| 0 (no MAE) | — | 0.846 | — |
+| 10 | 0.772 | 0.885 | 0.875 - 0.904 |
+| 15 | 0.759 | 0.914 | identical |
+| **20 (default)** | 0.747 | **0.914** | identical |
+| 25 | 0.728 | 0.871 | identical |
+| 30 | 0.725 | 0.852 | 0.814 - 0.871 |
+| 40 | 0.696 | 0.814 | identical |
+| 80 | 0.659 | 0.814 | — |
+
+**15 and 20 form a plateau**, both landing on exactly 0.914 for every MAE seed.
+The first sweep jumped 10 -> 20 -> 40 and made 20 look like a tuned spike; with
+the neighbours measured it is a flat region, and 20 is *more* seed-stable than 10
+(0.914 always, vs 0.875-0.904). Degradation starts at 25.
+
+`DEFAULT_EPOCHS` changed 10 -> 20 on this evidence.
 
 MAE also lifts WiFo2 alone (0.679 -> 0.714), so the gain is not an artefact of
 the physics half.
 
-**`DEFAULT_EPOCHS = 10`, not the 20 that peaks.** 20 sits on a spike whose
-neighbours are 0.04-0.10 lower and was chosen by reading this same metric — the
-selection leakage that cost 0.08 on the feature-selection experiment. Past 40
-epochs the adaptation overfits 30 samples and falls below baseline.
+Caveats that remain:
 
-Why it is recorded as unproven despite being positive:
-
-- **+0.03 to +0.06 against a CV std of 0.085.** Inside the noise
-- **the value moves with MAE batch ordering**: 0.875 or 0.904 at the same 10
-  epochs, depending only on whether the RNG is seeded before or after the model
-  is built. A gain that shifts 0.03 on incidental RNG is not a measurement
-- **CV std nearly triples** versus no-MAE (0.032 -> 0.085); adapted features are
-  less stable across fold splits
-- **LOOCV is unchanged** at 0.857, same confusion `[[6,0],[1,3]]`. The 5-fold
-  gain comes from splits LOOCV does not exercise
-- local CV predicts the private ranking poorly (see above): a +0.68 local gain
-  bought +0.03 privately
+- **+0.068 against a CV std of 0.070.** Still roughly one sigma
+- **LOOCV is unchanged** at 0.857, same confusion `[[6,0],[1,3]]` — see the
+  mechanism section below for why
+- local CV predicts the private ranking poorly (see above), though MAE is the one
+  change so far that transferred well
 
 #### How MAE contributes when the LOOCV confusion matrix is unchanged
 
@@ -424,12 +425,16 @@ detect and a 20-sample private set can.
 Predictions differed from the 0.75 submission on 3 of 20 test samples (indices
 8, 15, 17).
 
-**Submitted: scored 0.79, up from 0.75.** The +0.04 private gain roughly matches
-the +0.06 local gain — far better transfer than the physics step managed. My
-in-session read that this was "inside the noise, probably not worth a submission
-slot" was wrong: the caution about the local number was fair, but the change
-itself was real. Three flipped labels out of twenty moved the score more than the
-entire physics rework did.
+**Submitted at 10 epochs: scored 0.79, up from 0.75.** The +0.04 private gain
+roughly matches the +0.06 local gain — far better transfer than the physics step
+managed. My in-session read that this was "inside the noise, probably not worth a
+submission slot" was wrong: the caution about the local number was fair, but the
+change itself was real. Three flipped labels out of twenty moved the score more
+than the entire physics rework did.
+
+**20 epochs prepared, not yet submitted.** Local 0.914 vs 0.904/0.875 at 10.
+Predictions differ from the 0.79 submission on 4 of 20 samples;
+`experiments/task1_mae/submission.json` and `make_submission.py` now use it.
 
 ### Doppler, angular spread and per-antenna K-spread add nothing
 
@@ -502,8 +507,8 @@ wastes spatial degrees of freedom.
 - ~~threshold tuning~~ — tested, +0.01 inside noise. See negative results
 - more physics: per-antenna K-factor spread, Doppler from the time axis, angular spread via spatial FFT
 - ~~MAE pretraining on the unlabelled test samples~~ — done, 0.75 -> **0.79**
-- try MAE at 20 epochs (local 0.914 vs 0.904 at 10); the epoch count was left conservative and the private set has now shown it rewards representation changes
-- try a larger MAE corpus: Task 2's `X_train.mat` has 500 CSI samples, though its (128, 64) geometry differs from Task 1's (24, 8, 128)
+- ~~try MAE at 20 epochs~~ — done, local 0.914, on a 15-20 plateau. Submission ready, not yet scored
+- Task 2's 500 CSI samples as a larger MAE corpus: ruled out by the user, do not use Task 2 data for Task 1
 - submit Task 2 persistence — 0.0100 NMSE for zero training
 - get `dataset/Task3/`, or submit blank to learn its shape
 - `L_test.mat` does not ship, so `data_load_task_1` (`DataLoader.py:70`) raises; `main.py --task_id 1` cannot run as-is
