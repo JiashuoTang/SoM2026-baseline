@@ -498,6 +498,51 @@ Why each fails, measured:
 Features kept in the module (they cost nothing at inference and the private set
 behaves nothing like these 10 samples), but marked as measured-neutral.
 
+### Ensembling: measures the selection bias, does not beat it
+
+54 members = 6 representations (MAE epochs 15/20 x 3 MAE seeds) x k in {2,3,5} x
+C in {0.5,1,2}. Every member refit inside each CV fold; MAE features precomputed
+(legitimate — MAE uses no labels).
+
+| model | binary F1 | std | LOOCV | test balance |
+|---|---|---|---|---|
+| single best: 20ep k=3 C=1 | 0.914 | 0.070 | 0.857 | 11/9 |
+| single: 15ep k=3 C=1 | 0.914 | 0.070 | 0.857 | — |
+| ensemble, mean of probabilities | 0.857 | **0.000** | 0.857 | 14/6 |
+| ensemble, majority vote | 0.857 | **0.000** | 0.857 | 14/6 |
+| ensemble, max of probabilities | 0.859 | 0.099 | 0.857 | 9/11 |
+
+**Individual members span 0.680 to 0.950, median 0.836, mean 0.840.** The
+ensemble scores 0.857 and beats 54% of its own members — i.e. it lands near the
+median, which is where an average belongs.
+
+The important number is the gap: **selecting the best config by CV yields 0.914
+where the typical member scores 0.836.** That ~0.08 is the selection bias baked
+into every "best model" figure in this file, including the 0.904 behind the
+submitted 0.79.
+
+This retro-explains the transfer history exactly:
+
+| step | local | private | inflation | selection involved |
+|---|---|---|---|---|
+| baseline -> physics | +0.68 | +0.03 | 23x | heavy (features, k, classifier) |
+| physics -> MAE | +0.06 | +0.04 | 1.4x | almost none (no labels in the loop) |
+
+Inflation tracks the amount of label-fitted selection, not the size of the change.
+
+Why the ensemble was not submitted: it predicts **6 of 20 as LoS (30%)** against a
+40% training prior, versus 9/20 for the single model. Probability averaging pulls
+values toward 0.5, and with a fixed 0.5 threshold on a minority-positive problem
+the borderline positives get shrunk into the negative class. Recall is already
+the bottleneck (FP = 0, recall 0.750), so this pushes the wrong way for F1.
+Majority vote gives identical predictions; `max` restores the balance only by
+becoming unstable (std 0.099).
+
+Untried follow-up: threshold the ensemble at the **training prior** (top 40% of
+probabilities = LoS) rather than 0.5. That matches a known quantity rather than
+tuning on the metric, and would undo the shrinkage without adding a fitted
+parameter.
+
 ### Threshold tuning does not help
 
 The best model sits at precision 1.000, recall 0.750, so lowering the decision
