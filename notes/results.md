@@ -387,6 +387,40 @@ Why it is recorded as unproven despite being positive:
 - local CV predicts the private ranking poorly (see above): a +0.68 local gain
   bought +0.03 privately
 
+#### How MAE contributes when the LOOCV confusion matrix is unchanged
+
+Both physics+WiFo2 rows above give the identical LOOCV matrix (TN6 FP0 FN1 TP3).
+Identical predictions do not mean an identical model — measured:
+
+1. **Features move 6.6%** (mean |change| 0.0106; per-dim correlation 0.992, min
+   0.914). A refinement of the representation, not a rewrite.
+2. **LOOCV probabilities all shift but none crosses 0.5** (mean |shift| 0.035),
+   so the hard labels — and therefore the confusion matrix — cannot change.
+   LOOCV reports 10 thresholded bits and cannot resolve a shift that small. The
+   mean margin to the boundary does improve, 0.270 -> 0.288.
+3. **The gain is in the 5-fold regime**, which trains on 8 samples instead of
+   LOOCV's 9:
+
+   ```
+   no MAE : 0.86 0.86 0.86 0.86 0.86 0.75 0.86 0.86 0.86 0.86   mean 0.846
+   MAE    : 1.00 1.00 0.86 0.86 1.00 0.75 0.86 0.86 0.86 1.00   mean 0.904
+   ```
+
+   Four seeds go 0.86 -> 1.00 (a missed LoS sample recovered); none gets worse.
+4. **On the test set it removed borderline false positives.** The 3 flips were
+   all within 0.055 of the boundary and all went LoS -> NLoS:
+   sample 8 `0.519 -> 0.440`, sample 15 `0.502 -> 0.486`, sample 17
+   `0.555 -> 0.452`. Predicted LoS count fell 11 -> 8 and the private score rose,
+   so those three were most likely NLoS.
+5. **Feature selection is unchanged**: `first_tap_frac` and `wifo_38` picked
+   10/10 folds both with and without MAE. MAE improved the quality of `wifo_38`,
+   not which features matter.
+
+MAE never sees labels, so it cannot sharpen the class boundary directly. It fits
+the representation to this deployment's channel statistics, which surfaces as
+marginal samples being placed better — exactly what a 10-point LOOCV cannot
+detect and a 20-sample private set can.
+
 Predictions differed from the 0.75 submission on 3 of 20 test samples (indices
 8, 15, 17).
 
