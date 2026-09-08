@@ -296,6 +296,50 @@ Consistent across every feature set and every k. Two reasons:
 Augmentations tried: global phase, amplitude scale 0.5-2x, antenna permutation,
 AWGN 15-30 dB, time roll.
 
+### MAE self-supervised adaptation — the only non-negative result, but unproven
+
+`mae_pretrain.py`, `notebook/task1_mae.ipynb`.
+
+Runs WiFo2's own masked-autoencoder objective over 30 unlabelled CSI samples
+(10 train + 20 test inputs, no labels). The repo has every piece —
+`forward_encoder`, `forward_decoder`, `decoder_pred`, `forward_loss` — but never
+wires them into a training loop.
+
+Binary F1, physics + WiFo2 at k=3, seed-averaged:
+
+| MAE epochs | recon loss | binary F1 | CV std |
+|---|---|---|---|
+| 0 (no MAE) | — | 0.846 | 0.032 |
+| 5 | 0.804 | 0.875 | 0.070 |
+| **10 (default)** | 0.778 | **0.875-0.904** | 0.070-0.085 |
+| 20 | 0.739 | 0.914 | 0.070 |
+| 40 | 0.696 | 0.814 | 0.052 |
+| 80 | 0.659 | 0.814 | 0.052 |
+
+MAE also lifts WiFo2 alone (0.679 -> 0.714), so the gain is not an artefact of
+the physics half.
+
+**`DEFAULT_EPOCHS = 10`, not the 20 that peaks.** 20 sits on a spike whose
+neighbours are 0.04-0.10 lower and was chosen by reading this same metric — the
+selection leakage that cost 0.08 on the feature-selection experiment. Past 40
+epochs the adaptation overfits 30 samples and falls below baseline.
+
+Why it is recorded as unproven despite being positive:
+
+- **+0.03 to +0.06 against a CV std of 0.085.** Inside the noise
+- **the value moves with MAE batch ordering**: 0.875 or 0.904 at the same 10
+  epochs, depending only on whether the RNG is seeded before or after the model
+  is built. A gain that shifts 0.03 on incidental RNG is not a measurement
+- **CV std nearly triples** versus no-MAE (0.032 -> 0.085); adapted features are
+  less stable across fold splits
+- **LOOCV is unchanged** at 0.857, same confusion `[[6,0],[1,3]]`. The 5-fold
+  gain comes from splits LOOCV does not exercise
+- local CV predicts the private ranking poorly (see above): a +0.68 local gain
+  bought +0.03 privately
+
+Predictions differ from the standing 0.75 submission on 3 of 20 test samples
+(indices 8, 15, 17). Not submitted.
+
 ### Doppler, angular spread and per-antenna K-spread add nothing
 
 Added 11 features to `physics_features.py` (17 -> 28): `K_ant_std/range/cv`,
@@ -366,7 +410,8 @@ wastes spatial degrees of freedom.
 - ~~augmentation~~ — tested, hurts. See negative results
 - ~~threshold tuning~~ — tested, +0.01 inside noise. See negative results
 - more physics: per-antenna K-factor spread, Doppler from the time axis, angular spread via spatial FFT
-- MAE pretraining on the 20 unlabelled test samples — self-supervised, adapts the backbone with no labels
+- ~~MAE pretraining on the unlabelled test samples~~ — implemented, +0.03..+0.06 local, inside noise. Not submitted; see above
+- submit the MAE variant if a slot is spare (differs from the standing submission on 3 of 20)
 - submit Task 2 persistence — 0.0100 NMSE for zero training
 - get `dataset/Task3/`, or submit blank to learn its shape
 - `L_test.mat` does not ship, so `data_load_task_1` (`DataLoader.py:70`) raises; `main.py --task_id 1` cannot run as-is
