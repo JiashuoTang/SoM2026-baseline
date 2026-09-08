@@ -432,9 +432,30 @@ submission slot" was wrong: the caution about the local number was fair, but the
 change itself was real. Three flipped labels out of twenty moved the score more
 than the entire physics rework did.
 
-**20 epochs prepared, not yet submitted.** Local 0.914 vs 0.904/0.875 at 10.
-Predictions differ from the 0.79 submission on 4 of 20 samples;
+**20 epochs prepared, not yet submitted.** Local 0.914 vs 0.904 at 10.
 `experiments/task1_mae/submission.json` and `make_submission.py` now use it.
+
+Diffed 10 vs 20 epochs on every metric — the change is very small:
+
+| | 10 ep | 20 ep |
+|---|---|---|
+| recon loss | 0.770 | 0.753 |
+| 5-fold mean | 0.904 | 0.914 |
+| 5-fold std | 0.085 | 0.070 |
+| LOOCV confusion | TN6 FP0 FN1 TP3 | **identical** |
+| LOOCV predictions | — | **identical, sample for sample** |
+| test labels | — | **1 of 20 flips** |
+
+The whole difference is **one CV seed out of ten**: seed 99 goes 0.750 -> 0.857.
+That single fold-split accounts for the entire mean gain and the entire std
+reduction. On the test set, mean |P(LoS) shift| is 0.032 and only sample 11
+crosses the boundary (0.469 -> 0.512) — a sample the model is maximally unsure
+about.
+
+So 20 epochs is defensible (plateau, more seed-stable) but the expected private
+effect is close to nil: it is a coin flip on one borderline sample. Predictions
+differ from the **0.75** no-MAE submission on 4 of 20, and from the **0.79**
+10-epoch submission on **1 of 20**.
 
 ### Doppler, angular spread and per-antenna K-spread add nothing
 
