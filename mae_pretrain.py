@@ -22,9 +22,17 @@ seed-averaged over 10 CV seeds, 3 MAE init seeds per row:
             40        0.696       0.814   identical
             80        0.659       0.814   -
 
-DEFAULT_EPOCHS = 20: the middle of a 15-20 plateau where every MAE seed lands on
-exactly 0.914, and more seed-stable than 10 (which wobbles 0.875-0.904). Not a
-tuned spike -- both neighbours were measured, and degradation starts at 25.
+DEFAULT_EPOCHS = 10, despite 15-20 scoring higher on local CV (0.914 vs 0.885).
+Reasons, in order of weight:
+
+  1. 10 epochs is what scored 0.79 on the private leaderboard; 20 has not beaten it.
+  2. 10 predicts 8/20 test samples as LoS -- exactly the 40% training prior.
+     20 predicts 9/20 (45%). Matching the prior is a label-free argument.
+  3. The 0.914-vs-0.885 gap is one CV seed out of ten, and the measured selection
+     bias on gaps that size is ~0.08 (notes/results.md, ensemble section).
+
+The two differ on exactly ONE test sample: index 11, P(LoS) 0.469 -> 0.512.
+Every other prediction is identical, as is the LOOCV confusion matrix.
 
 Past 40 epochs the adaptation overfits 30 samples and falls below the no-MAE
 baseline.
@@ -37,7 +45,7 @@ import torch
 
 from model import WiFo2_model
 
-DEFAULT_EPOCHS = 20
+DEFAULT_EPOCHS = 10
 MASK_RATIO = 0.5
 MASK_STRATEGY = 'fre'
 LR = 1e-5

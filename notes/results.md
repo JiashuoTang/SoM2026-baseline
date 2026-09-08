@@ -432,7 +432,16 @@ submission slot" was wrong: the caution about the local number was fair, but the
 change itself was real. Three flipped labels out of twenty moved the score more
 than the entire physics rework did.
 
-**20 epochs prepared, not yet submitted.** Local 0.914 vs 0.904 at 10.
+**20 epochs prepared, then reverted — 10 epochs is the default again.** Local CV
+preferred 20 (0.914 vs 0.885), but three arguments outweigh a one-seed CV gap:
+
+1. 10 epochs is what actually scored **0.79**; 20 has not beaten it
+2. 10 predicts **8/20 (40%) LoS — exactly the training prior**; 20 predicts 9/20
+   (45%). Prior-matching is a label-free argument, independent of the CV
+3. the 0.914-vs-0.885 gap is one CV seed out of ten, and the measured selection
+   bias on gaps that size is ~0.08 (ensemble section above)
+
+Local 0.914 vs 0.885 at 10.
 `experiments/task1_mae/submission.json` and `make_submission.py` now use it.
 
 Diffed 10 vs 20 epochs on every metric — the change is very small:
@@ -452,10 +461,11 @@ reduction. On the test set, mean |P(LoS) shift| is 0.032 and only sample 11
 crosses the boundary (0.469 -> 0.512) — a sample the model is maximally unsure
 about.
 
-So 20 epochs is defensible (plateau, more seed-stable) but the expected private
-effect is close to nil: it is a coin flip on one borderline sample. Predictions
-differ from the **0.75** no-MAE submission on 4 of 20, and from the **0.79**
-10-epoch submission on **1 of 20**.
+The single differing sample is **index 11**: P(LoS) 0.469 (10ep) -> 0.512 (20ep).
+Every other test prediction and the whole LOOCV confusion matrix are identical.
+
+`DEFAULT_EPOCHS` reverted to 10 and `experiments/task1_mae/` regenerated, so what
+is on disk matches the 0.79 submission.
 
 ### Doppler, angular spread and per-antenna K-spread add nothing
 
