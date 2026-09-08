@@ -188,6 +188,40 @@ baseline head could exploit. Physics features then added 0.13 more.
 
 LOOCV confusion at 0.890: `[[6,0],[1,3]]` — one LoS sample missed, nothing else.
 
+### Confusion matrices (LOOCV, local)
+
+10 samples: 6 NLoS (class 0), 4 LoS (class 1). Leave-one-out, so every sample is
+predicted by a model that did not train on it.
+
+| approach | TN | FP | FN | TP | precision | recall | F1 |
+|---|---|---|---|---|---|---|---|
+| all NLoS (majority) | 6 | 0 | 4 | 0 | 0.000 | 0.000 | 0.000 |
+| all LoS (trivial positive) | 0 | 6 | 0 | 4 | 0.400 | 1.000 | 0.571 |
+| WiFo2 linear probe — repo baseline | 4 | 2 | 3 | 1 | 0.333 | 0.250 | 0.286 |
+| WiFo2 mean-pool probe (SGD head) | 4 | 2 | 2 | 2 | 0.500 | 0.500 | 0.500 |
+| WiFo2 mean-pool + logreg (k=3) | 6 | 0 | 2 | 2 | 1.000 | 0.500 | 0.667 |
+| physics alone (k=1) | 5 | 1 | 1 | 3 | 0.750 | 0.750 | 0.750 |
+| physics + WiFo2 (k=3) | 6 | 0 | 1 | 3 | 1.000 | 0.750 | 0.857 |
+| physics + WiFo2 + MAE (k=3) | 6 | 0 | 1 | 3 | 1.000 | 0.750 | 0.857 |
+
+Reading it:
+
+- **Every approach from `mean-pool + logreg` onward has FP = 0.** The remaining
+  error is entirely missed LoS samples. That is the safe direction operationally
+  — a false LoS call breaks the precoding rank assumption, a false NLoS call only
+  wastes spatial degrees of freedom — but F1 weights both equally, so the recall
+  is where the remaining points are.
+- **The last two rows are identical.** MAE changes nothing at LOOCV; its entire
+  measured gain lives in 5-fold splits, which is why it was recorded as unproven
+  locally. It still moved the private score 0.75 -> 0.79.
+- **The baseline's 2 FP and 3 FN** is worse than either constant predictor by F1.
+  It is not merely biased toward NLoS, it is wrong in both directions.
+- Under LOOCV every model fits on 9 of 10 samples, so these are the most
+  optimistic numbers in this file. The 5-fold seed-averaged scores are lower.
+
+No confusion matrix exists for the private submissions (0.72 / 0.75 / 0.79) —
+the test labels are not released.
+
 ### The features that matter
 
 Selected in 10/10 leave-one-out folds:
