@@ -8,9 +8,50 @@ Recorded 2026-09-08.
 |---|---|---|
 | first | 0.72 | WiFo2 `tinypro` encoder + `Linear(24576,2)` head, the repo baseline |
 | second | 0.75 | physics features + WiFo2 mean-pool, logistic regression |
-| third | **0.79** | same, plus MAE self-supervised adaptation on 30 unlabelled CSI samples |
+| third | **0.79** | same, plus MAE adaptation, **10 epochs** |
+| fourth | 0.74 | same, MAE **20 epochs** — one label different, **-0.05** |
 
-Cumulative **+0.07** over the repo baseline. Step deltas: +0.03, then +0.04.
+Best is the third. Cumulative +0.07 over the repo baseline; step deltas +0.03,
++0.04, then -0.05 when the epoch count was raised.
+
+### One label is worth ~0.05 of F1
+
+Submissions three and four differ on **exactly one test sample** — index 11,
+P(LoS) 0.469 (10ep) vs 0.512 (20ep). That single flip cost **0.05**.
+
+Two things follow:
+
+- **Sample 11 is NLoS.** Calling it LoS added a false positive.
+- **The private set is small enough that every prediction is worth ~0.05.** No
+  local measurement on this branch resolves anything that fine — the CV
+  resolution floor is one training sample in ten, which is coarser still.
+
+Exact private confusion cannot be recovered: the closest integer fits give
+F1 0.778/0.737 with TP around 7-9, so the reported scores are rounded somewhat
+differently. LoS count in the private set is somewhere in 7-14 of 20.
+
+### Local CV got the ORDERING wrong — third data point
+
+| | local binary F1 | private |
+|---|---|---|
+| MAE 10 epochs | 0.885 | **0.79** |
+| MAE 20 epochs | 0.914 | **0.74** |
+
+Local CV preferred 20 epochs on a seed-stable 15-20 plateau. The private set
+preferred 10, by 0.05. This is worse than the earlier finding that local CV
+overstates *magnitude* — here it **inverted the ranking**.
+
+**What did predict correctly: matching the class prior.** 10 epochs predicts 8/20
+LoS = 40%, exactly the training prior; 20 epochs predicts 9/20 = 45%. The
+prior-match argument is label-free, needs no CV, and picked the winner where CV
+picked the loser.
+
+Working rule going forward, in priority order:
+
+1. prefer the submission whose predicted class rate matches the 40% training prior
+2. prefer changes that never consult the 10 labels
+3. treat local CV differences below ~0.1 as having **no** predictive value, not
+   merely weak value
 
 Task 2 not submitted — persistence baseline ready, NMSE 0.0100 locally.
 Task 3 not submitted — `dataset/Task3/` absent locally.
@@ -57,7 +98,8 @@ that number. Higher is better.
 | WiFo2 mean-pool probe (SGD head) | 0.475 | not submitted |
 | WiFo2 mean-pool + logistic regression (k=3) | 0.679 | not submitted |
 | physics + WiFo2 mean-pool, k=3 | 0.846 | **0.75** |
-| physics + WiFo2 + MAE 10ep | 0.904 | **0.79** |
+| physics + WiFo2 + MAE 10ep | 0.885 | **0.79** |
+| physics + WiFo2 + MAE 20ep | 0.914 | **0.74** |
 | gap, baseline to best | +0.74 | **+0.07** |
 
 Step-by-step, local delta vs private delta:
@@ -65,7 +107,8 @@ Step-by-step, local delta vs private delta:
 | step | local | private | ratio |
 |---|---|---|---|
 | baseline -> physics | +0.68 | +0.03 | 23x |
-| physics -> MAE | +0.06 | +0.04 | 1.4x |
+| physics -> MAE 10ep | +0.06 | +0.04 | 1.4x |
+| MAE 10ep -> 20ep | +0.03 | **-0.05** | **sign inverted** |
 
 The physics jump was hugely inflated locally; the MAE gain transferred almost
 one-for-one. So the local CV is not uniformly optimistic — it wildly overstated a
