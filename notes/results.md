@@ -7,9 +7,10 @@ Recorded 2026-09-08.
 | submission | task 1 score | approach |
 |---|---|---|
 | first | 0.72 | WiFo2 `tinypro` encoder + `Linear(24576,2)` head, the repo baseline |
-| second | **0.75** | physics features + WiFo2 mean-pool, logistic regression |
+| second | 0.75 | physics features + WiFo2 mean-pool, logistic regression |
+| third | **0.79** | same, plus MAE self-supervised adaptation on 30 unlabelled CSI samples |
 
-Delta **+0.03** (described in session as ~0.04).
+Cumulative **+0.07** over the repo baseline. Step deltas: +0.03, then +0.04.
 
 Task 2 not submitted — persistence baseline ready, NMSE 0.0100 locally.
 Task 3 not submitted — `dataset/Task3/` absent locally.
@@ -56,7 +57,22 @@ that number. Higher is better.
 | WiFo2 mean-pool probe (SGD head) | 0.475 | not submitted |
 | WiFo2 mean-pool + logistic regression (k=3) | 0.679 | not submitted |
 | physics + WiFo2 mean-pool, k=3 | 0.846 | **0.75** |
-| gap, baseline to best | +0.68 | **+0.03** |
+| physics + WiFo2 + MAE 10ep | 0.904 | **0.79** |
+| gap, baseline to best | +0.74 | **+0.07** |
+
+Step-by-step, local delta vs private delta:
+
+| step | local | private | ratio |
+|---|---|---|---|
+| baseline -> physics | +0.68 | +0.03 | 23x |
+| physics -> MAE | +0.06 | +0.04 | 1.4x |
+
+The physics jump was hugely inflated locally; the MAE gain transferred almost
+one-for-one. So the local CV is not uniformly optimistic — it wildly overstated a
+change to the *classifier and features*, and roughly tracked a change to the
+*representation*. Small sample, do not over-generalise, but it argues against
+dismissing small local gains: the +0.06 that looked like noise was worth more
+privately than the +0.68 that looked decisive.
 
 Only the first and last rows have private scores; the two mean-pool variants were
 never submitted. Given the baseline's 0.169 -> 0.72 jump, their private scores are
@@ -296,7 +312,7 @@ Consistent across every feature set and every k. Two reasons:
 Augmentations tried: global phase, amplitude scale 0.5-2x, antenna permutation,
 AWGN 15-30 dB, time roll.
 
-### MAE self-supervised adaptation — the only non-negative result, but unproven
+### MAE self-supervised adaptation — submitted, 0.75 -> 0.79
 
 `mae_pretrain.py`, `notebook/task1_mae.ipynb`.
 
@@ -337,8 +353,15 @@ Why it is recorded as unproven despite being positive:
 - local CV predicts the private ranking poorly (see above): a +0.68 local gain
   bought +0.03 privately
 
-Predictions differ from the standing 0.75 submission on 3 of 20 test samples
-(indices 8, 15, 17). Not submitted.
+Predictions differed from the 0.75 submission on 3 of 20 test samples (indices
+8, 15, 17).
+
+**Submitted: scored 0.79, up from 0.75.** The +0.04 private gain roughly matches
+the +0.06 local gain — far better transfer than the physics step managed. My
+in-session read that this was "inside the noise, probably not worth a submission
+slot" was wrong: the caution about the local number was fair, but the change
+itself was real. Three flipped labels out of twenty moved the score more than the
+entire physics rework did.
 
 ### Doppler, angular spread and per-antenna K-spread add nothing
 
@@ -410,8 +433,9 @@ wastes spatial degrees of freedom.
 - ~~augmentation~~ — tested, hurts. See negative results
 - ~~threshold tuning~~ — tested, +0.01 inside noise. See negative results
 - more physics: per-antenna K-factor spread, Doppler from the time axis, angular spread via spatial FFT
-- ~~MAE pretraining on the unlabelled test samples~~ — implemented, +0.03..+0.06 local, inside noise. Not submitted; see above
-- submit the MAE variant if a slot is spare (differs from the standing submission on 3 of 20)
+- ~~MAE pretraining on the unlabelled test samples~~ — done, 0.75 -> **0.79**
+- try MAE at 20 epochs (local 0.914 vs 0.904 at 10); the epoch count was left conservative and the private set has now shown it rewards representation changes
+- try a larger MAE corpus: Task 2's `X_train.mat` has 500 CSI samples, though its (128, 64) geometry differs from Task 1's (24, 8, 128)
 - submit Task 2 persistence — 0.0100 NMSE for zero training
 - get `dataset/Task3/`, or submit blank to learn its shape
 - `L_test.mat` does not ship, so `data_load_task_1` (`DataLoader.py:70`) raises; `main.py --task_id 1` cannot run as-is
