@@ -4,20 +4,43 @@ Recorded 2026-09-08.
 
 ## Leaderboard
 
-| task | score | notes |
+| submission | task 1 score | approach |
 |---|---|---|
-| Task 1 — LoS/NLoS | **0.72** | private test set. **Metric direction unconfirmed** — could be macro F1 (higher better) or the challenge's `1 - F1` (lower better). See below |
-| Task 2 — channel prediction | not submitted | persistence baseline prepared, NMSE 0.0100 locally |
-| Task 3 — depth estimation | not submitted | `dataset/Task3/` absent locally |
+| first | 0.72 | WiFo2 `tinypro` encoder + `Linear(24576,2)` head, the repo baseline |
+| second | **0.75** | physics features + WiFo2 mean-pool, logistic regression |
 
-**Resolve the metric direction before trusting the 0.72.** `train.py:78` scores
-`1 - f1_macro` internally, so both readings are live:
+Delta **+0.03** (described in session as ~0.04).
 
-- macro F1 = 0.72 → good, well above the 0.375 majority-class baseline
-- `1 - F1` = 0.72 → macro F1 = 0.28, *below* the majority baseline
+Task 2 not submitted — persistence baseline ready, NMSE 0.0100 locally.
+Task 3 not submitted — `dataset/Task3/` absent locally.
 
-Check the leaderboard column header or submit a majority-class-only file: it
-scores macro F1 0.375, so whichever side of that the result lands on settles it.
+### Metric direction — resolved
+
+Higher is better, so the leaderboard reports **macro F1**, not the `1 - F1` that
+`train.py:78` computes internally. Evidence: the physics model is clearly better
+by local CV (0.880 vs 0.428) and scored *higher* on the private set (0.75 vs
+0.72). Under a `1 - F1` column a better model would have scored lower.
+
+So 0.75 macro F1, against a 0.375 majority-class floor.
+
+### Local CV badly overestimates
+
+| | baseline | physics | delta |
+|---|---|---|---|
+| local 5-fold CV (10 samples) | 0.428 | 0.880 | **+0.45** |
+| private leaderboard | 0.72 | 0.75 | **+0.03** |
+
+A 0.45 local gain bought 0.03 on the private set — **15x smaller**. Two things
+follow, and both matter for how this branch is run:
+
+1. **The local CV is nearly useless as a magnitude estimate.** 10 samples, folds
+   of 2. Use it to rank approaches, never to predict the leaderboard.
+2. **The private set is much easier than the local CV suggests** — the baseline
+   scores 0.72 there against 0.428 locally. The 10 training samples are either
+   unrepresentative or simply too few to estimate anything.
+
+Practical consequence: a local gain under ~0.1 is not worth a submission slot,
+and even a large one may move the leaderboard by a few hundredths.
 
 ## Architecture used
 
@@ -178,8 +201,8 @@ Expect the same for Task 3: submit it blank and the error names the count.
 
 ## Next
 
-- settle the metric direction on the 0.72
-- **submit the physics+WiFo2 predictions** — 0.880 local vs 0.428 for the model behind the 0.72
+- ~~settle the metric direction~~ — resolved, higher is better (macro F1)
+- ~~submit the physics+WiFo2 predictions~~ — done, 0.72 -> 0.75
 - augmentation: global phase rotation, AWGN at known SNR, antenna permutation. All label-preserving, turns 10 samples into thousands
 - more physics: per-antenna K-factor spread, Doppler from the time axis, angular spread via spatial FFT
 - MAE pretraining on the 20 unlabelled test samples — self-supervised, adapts the backbone with no labels
