@@ -37,21 +37,48 @@ free. Accuracy is 0.60 for *every* variant tested and is useless here.
 
 Floor to beat is **0.571**, not 0.375.
 
-Direction is confirmed higher-is-better: the physics model is better locally and
-scored higher privately (0.75 vs 0.72). Under a `1 - F1` column it would have
-gone down.
+**Confirmed from the challenge page** (Evaluation Metrics, Task 1):
 
-**Unresolved:** whether the leaderboard reports binary or macro. The baseline
-head scores 0.000 binary locally but 0.72 privately — impossible for the same
-metric unless the private class balance differs sharply from 6/4. Weak evidence
-the leaderboard is macro. Check the column header if it is visible.
+```
+Precision = TP/(TP+FP),  Recall = TP/(TP+FN),  F1 = 2*P*R/(P+R),  score_1 = F1
+TP: correctly predicts LoS;  FP: predicts LoS when actually NLoS;
+FN: predicts NLoS when actually LoS
+```
+
+So the leaderboard reports **binary F1, LoS positive**. Both 0.72 and 0.75 are
+that number. Higher is better.
+
+### Local CV does not predict the private ranking
+
+| approach | local binary F1 (out-of-fold) | private leaderboard |
+|---|---|---|
+| WiFo2 linear probe — repo baseline | 0.169 | **0.72** |
+| physics + WiFo2, k=3 | 0.846 | **0.75** |
+| gap | +0.68 | **+0.03** |
+
+The baseline scores 0.169 locally and 0.72 privately — a 4x jump. Two reasons,
+neither of them a contradiction:
+
+1. **Out-of-fold CV fits on 8 samples; the submitted model fits on all 10.** The
+   submitted baseline predicted 15 NLoS / 5 LoS on the test set, not the
+   all-NLoS collapse the CV folds produced. Two extra training samples changed
+   its behaviour qualitatively — that is what 10-sample training looks like.
+2. The private set is larger and its class balance is unknown.
+
+Consequence: **the local CV ranks approaches only weakly and predicts absolute
+private scores not at all.** A +0.68 local gain bought +0.03 privately.
+
+Useful reference point: an all-LoS submission scores F1 = 2p/(1+p) where p is the
+private LoS fraction — about 0.57 at 40% LoS, 0.67 at 50%. The current 0.75 beats
+that, but not by a wide margin.
 
 ### Local CV badly overestimates
 
 | | baseline | physics | delta |
 |---|---|---|---|
-| local 5-fold CV (10 samples) | 0.428 | 0.880 | **+0.45** |
-| private leaderboard | 0.72 | 0.75 | **+0.03** |
+| local 5-fold CV, macro F1 | 0.428 | 0.880 | +0.45 |
+| local 5-fold CV, binary F1 (the real metric) | 0.169 | 0.846 | +0.68 |
+| private leaderboard (binary F1) | 0.72 | 0.75 | **+0.03** |
 
 A 0.45 local gain bought 0.03 on the private set — **15x smaller**. Two things
 follow, and both matter for how this branch is run:
@@ -289,7 +316,6 @@ wastes spatial degrees of freedom.
 - ~~submit the physics+WiFo2 predictions~~ — done, 0.72 -> 0.75
 - ~~augmentation~~ — tested, hurts. See negative results
 - ~~threshold tuning~~ — tested, +0.01 inside noise. See negative results
-- confirm whether the leaderboard column is binary or macro F1
 - more physics: per-antenna K-factor spread, Doppler from the time axis, angular spread via spatial FFT
 - MAE pretraining on the 20 unlabelled test samples — self-supervised, adapts the backbone with no labels
 - submit Task 2 persistence — 0.0100 NMSE for zero training
