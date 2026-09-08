@@ -53,8 +53,16 @@ that number. Higher is better.
 | approach | local binary F1 (out-of-fold) | private leaderboard |
 |---|---|---|
 | WiFo2 linear probe — repo baseline | 0.169 | **0.72** |
-| physics + WiFo2, k=3 | 0.846 | **0.75** |
-| gap | +0.68 | **+0.03** |
+| WiFo2 mean-pool probe (SGD head) | 0.475 | not submitted |
+| WiFo2 mean-pool + logistic regression (k=3) | 0.679 | not submitted |
+| physics + WiFo2 mean-pool, k=3 | 0.846 | **0.75** |
+| gap, baseline to best | +0.68 | **+0.03** |
+
+Only the first and last rows have private scores; the two mean-pool variants were
+never submitted. Given the baseline's 0.169 -> 0.72 jump, their private scores are
+not predictable from the local column — mean-pooling is a confirmed local gain
+(+0.31 binary F1 over the baseline head, winning on 9 of 10 seeds) with unknown
+private value.
 
 The baseline scores 0.169 locally and 0.72 privately — a 4x jump. Two reasons,
 neither of them a contradiction:
@@ -74,11 +82,11 @@ that, but not by a wide margin.
 
 ### Local CV badly overestimates
 
-| | baseline | physics | delta |
-|---|---|---|---|
-| local 5-fold CV, macro F1 | 0.428 | 0.880 | +0.45 |
-| local 5-fold CV, binary F1 (the real metric) | 0.169 | 0.846 | +0.68 |
-| private leaderboard (binary F1) | 0.72 | 0.75 | **+0.03** |
+| | baseline | mean-pool (SGD) | mean-pool + logreg | physics + wifo | baseline -> best |
+|---|---|---|---|---|---|
+| local 5-fold CV, macro F1 | 0.428 | 0.561 | 0.748 | 0.880 | +0.45 |
+| local 5-fold CV, binary F1 (the real metric) | 0.169 | 0.475 | 0.679 | 0.846 | +0.68 |
+| private leaderboard (binary F1) | 0.72 | — | — | 0.75 | **+0.03** |
 
 A 0.45 local gain bought 0.03 on the private set — **15x smaller**. Two things
 follow, and both matter for how this branch is run:
