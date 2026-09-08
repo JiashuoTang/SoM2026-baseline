@@ -543,6 +543,76 @@ probabilities = LoS) rather than 0.5. That matches a known quantity rather than
 tuning on the metric, and would undo the shrinkage without adding a fitted
 parameter.
 
+### Windowed / oversampled delay transform — no gain
+
+`notebook/task1_dsp_and_ssl.ipynb`. All discrimination is delay-domain
+(`first_tap_frac` t=3.85, `rms_delay` t=3.86), and the transform was a bare IFFT
+of 128 subcarriers — a rectangular window, -13 dB sidelobes. Hypothesis: leakage
+from the dominant LoS tap smears the profile and compresses the class contrast.
+
+t-statistics by window and FFT length:
+
+| window | nfft | first_tap_frac | rms_delay |
+|---|---|---|---|
+| rect (current) | 128 | **3.85** | 3.86 |
+| hann | 128 | 3.36 | 4.03 |
+| hamming | 128 | 3.56 | 3.74 |
+| rect | 512 | 1.87 | 4.64 |
+| hamming | 512 | 1.94 | **4.72** |
+
+**Hypothesis was wrong.** Windowing makes `first_tap_frac` *worse* — the dominant
+effect is main-lobe widening, not sidelobe leakage: a window spreads the direct
+path's energy into neighbouring bins so less lands in tap 0, and oversampling
+splits it further. `rms_delay` moves the opposite way, being a second moment.
+
+The two features want opposite transforms, and picking between them by t-stat
+would be reading the labels. All four settings were put in the pool with
+`SelectKBest` choosing inside each fold. Result: every variant lands on
+**0.857, std 0.000** — no gain over the 0.914 selected config, and identical to
+the ensemble and to every LOOCV since `mean-pool + logreg`.
+
+### MAE on an augmented corpus — LOOCV 1.000, do not submit
+
+Augmentation failed for the classifier, but SSL is where it belongs: no labels to
+overfit, and the corpus is only 30 samples. Phase, amplitude, antenna order,
+AWGN 20-35 dB.
+
+| config | mae seed | recon | binF1 | LOOCV | LOO confusion |
+|---|---|---|---|---|---|
+| no augmentation | 0 | 0.753 | 0.914 | 0.857 | TN6 FP0 FN1 TP3 |
+| 30+9x aug, 5ep | 0,1,2 | 1.294 | 0.886 | **1.000** | TN6 FP0 FN0 TP4 |
+| 30+4x aug, 10ep | 0,1,2 | 1.267 | 0.857-0.886 | **1.000** | TN6 FP0 FN0 TP4 |
+| 30+9x aug, 3ep | 0 only | 1.322 | 0.875 | 1.000 | not seed-stable |
+
+First model on the branch to break the `FN=1` barrier, seed-stably. **Still do not
+submit.** Four signals against, one for:
+
+| signal | reading |
+|---|---|
+| test LoS rate **25%** vs 40% prior | under-predicts the positive class; recall is the bottleneck |
+| confident predictions **reversed** | sample 2: 0.978 -> 0.143; also 7, 9, 14 flip by >0.4 |
+| recon loss **0.753 -> 1.294** | encoder fitting augmented statistics real test samples lack |
+| 5-fold **0.914 -> 0.886** | the protocol with less training data got worse |
+| LOOCV 1.000 | the only signal for — and 10 binary outcomes saturate easily |
+
+Mean P(LoS) collapses 0.501 -> 0.301. Predictions saved to
+`experiments/task1_mae_aug/` for the record only.
+
+**Lesson: label-free is necessary but not sufficient.** Augmentation is label-free
+yet shifts the *input distribution* away from real CSI, so the representation
+adapts to statistics the test set does not share. Reconstruction loss nearly
+doubling was the tell.
+
+### The resolution floor
+
+Every model on this branch is separated by **one LoS sample**. 0.857 is
+`TP3 FP0 FN1`; 0.914 is the same model catching the fourth in some fold splits.
+The 54-member ensemble, all four windowed variants, and every LOOCV since
+`mean-pool + logreg` land on exactly 0.857.
+
+Local evidence is exhausted. No further local work can resolve differences below
+one sample in ten.
+
 ### Threshold tuning does not help
 
 The best model sits at precision 1.000, recall 0.750, so lowering the decision
