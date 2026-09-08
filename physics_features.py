@@ -5,13 +5,21 @@ on 10 training samples: energy concentrated in the first delay tap, a short RMS
 delay spread, and a channel that stays correlated over time. These are the
 textbook Rician-vs-Rayleigh discriminators.
 
-Measured on dataset/Task1 (10 samples, seed-averaged 5-fold CV, macro F1):
+Measured on dataset/Task1 (10 samples, seed-averaged 5-fold CV, binary F1 with
+LoS positive -- the challenge metric):
 
-    physics + WiFo2 mean-pool, k=3   0.880
-    physics alone, k=1               0.811
-    WiFo2 mean-pool alone, k=3       0.748
-    WiFo2 linear probe (baseline)    0.428
-    majority class                   0.375
+    physics + WiFo2 mean-pool, k=3   0.846
+    physics alone, k=1               0.771
+    all-LoS (trivial positive)       0.571
+    WiFo2 mean-pool alone, k=3       0.679
+    WiFo2 linear probe (baseline)    0.169
+    majority class (all NLoS)        0.000
+
+The Doppler, angular and per-antenna-K-spread features below measured USELESS on
+this dataset (max t-stat 1.58 vs 3.86 for rms_delay; SelectKBest never picks them,
+and scores are identical with and without). Kept because they cost nothing at
+inference and the private set behaves very differently from these 10 samples --
+see notes/results.md for why they fail here.
 """
 import numpy as np
 from scipy import stats
@@ -70,6 +78,37 @@ def sample_features(h):
     # temporal stability against the first slot
     ht = h.reshape(h.shape[0], -1)
     f['temporal_corr'] = np.mean([_corr(ht[0], ht[t]) for t in range(h.shape[0])])
+
+    # --- per-antenna K-factor spread. A direct path reaches every element of the
+    # array, so LoS should give a similar K everywhere; NLoS varies element to
+    # element as the local scattering differs.
+    Ka = K.mean(-1)                                   # K per antenna, averaged over subcarriers
+    f['K_ant_std'] = Ka.std()
+    f['K_ant_range'] = Ka.max() - Ka.min()
+    f['K_ant_cv'] = Ka.std() / (Ka.mean() + 1e-12)
+
+    # --- Doppler: FFT along time. A static direct path concentrates power at DC;
+    # motion and rich scattering spread it.
+    dop = (np.abs(np.fft.fft(h, axis=0)) ** 2).mean((1, 2))
+    dop = np.fft.fftshift(dop)
+    pd_ = dop / dop.sum()
+    nu = np.arange(len(pd_)) - len(pd_) // 2
+    f['doppler_dc_frac'] = pd_[len(pd_) // 2]
+    f['doppler_spread'] = np.sqrt(((nu ** 2) * pd_).sum() - ((nu * pd_).sum()) ** 2)
+    f['doppler_entropy'] = -(pd_ * np.log(pd_ + 1e-12)).sum()
+    f['doppler_peak_ratio'] = dop.max() / (dop.mean() + 1e-12)
+
+    # --- angular spread: FFT along the antenna axis into beamspace. LoS arrives
+    # from one direction, so power sits in a single angular bin. Zero-padded to 64
+    # because 8 elements alone give very coarse resolution.
+    ang = (np.abs(np.fft.fft(h, n=64, axis=1)) ** 2).mean((0, 2))
+    ang = np.fft.fftshift(ang)
+    pa = ang / ang.sum()
+    th = np.arange(len(pa)) - len(pa) // 2
+    f['angular_spread'] = np.sqrt(((th ** 2) * pa).sum() - ((th * pa).sum()) ** 2)
+    f['angular_entropy'] = -(pa * np.log(pa + 1e-12)).sum()
+    f['angular_peak_ratio'] = ang.max() / (ang.mean() + 1e-12)
+    f['angular_top_frac'] = np.sort(pa)[-4:].sum()     # power in the 4 strongest beams
     return f
 
 
@@ -103,9 +142,12 @@ def _demo():
     assert los['first_tap_frac'] > nlos['first_tap_frac'], 'LoS must concentrate energy in tap 0'
     assert los['rms_delay'] < nlos['rms_delay'], 'LoS must have shorter delay spread'
     assert los['K_max'] > nlos['K_max'], 'LoS must show a higher Rician K'
-    print('demo ok:')
-    for n in STABLE + ('K_max',):
-        print(f'  {n:16s} LoS {los[n]:9.4f}   NLoS {nlos[n]:9.4f}')
+    assert los['doppler_dc_frac'] > nlos['doppler_dc_frac'], 'LoS must hold more power at DC'
+    assert los['angular_entropy'] < nlos['angular_entropy'], 'LoS must occupy fewer beams'
+    print(f'demo ok: {len(los)} features')
+    for n in STABLE + ('K_max', 'K_ant_std', 'doppler_dc_frac', 'doppler_spread',
+                       'angular_spread', 'angular_entropy'):
+        print(f'  {n:20s} LoS {los[n]:10.4f}   NLoS {nlos[n]:10.4f}')
 
 
 if __name__ == '__main__':

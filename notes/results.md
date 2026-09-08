@@ -296,6 +296,47 @@ Consistent across every feature set and every k. Two reasons:
 Augmentations tried: global phase, amplitude scale 0.5-2x, antenna permutation,
 AWGN 15-30 dB, time roll.
 
+### Doppler, angular spread and per-antenna K-spread add nothing
+
+Added 11 features to `physics_features.py` (17 -> 28): `K_ant_std/range/cv`,
+`doppler_dc_frac/spread/entropy/peak_ratio`,
+`angular_spread/entropy/peak_ratio/top_frac`.
+
+Binary F1, seed-averaged:
+
+| feature set | k=1 | k=2 | k=3 | k=5 |
+|---|---|---|---|---|
+| physics OLD (17) | 0.771 | 0.760 | 0.757 | 0.749 |
+| **the 11 NEW alone** | **0.076** | **0.082** | **0.076** | 0.183 |
+| physics ALL (28) | 0.771 | 0.760 | 0.757 | 0.705 |
+| OLD + wifo | 0.700 | 0.808 | **0.846** | 0.720 |
+| ALL + wifo | 0.700 | 0.808 | **0.846** | 0.720 |
+
+The new features alone score near zero (LOOCV F1 0.000 at k=1,2,3 — no true
+positives at all). Adding them to the existing set changes **nothing**: identical
+scores to three decimals, identical std. `SelectKBest` never picks one.
+
+Best new t-stat is 1.58 (`doppler_spread`) against 3.86 for `rms_delay`.
+
+Why each fails, measured:
+
+- **Doppler.** The channel decorrelates fast across the 24 slots — correlation
+  against slot 0 falls 1.00 -> 0.60 by slot 7 and ends near 0.40. Time-domain
+  K-factor is 0.0156, so `|time-mean|^2 << var`: Rayleigh-like along time for both
+  classes. Power is spread across Doppler bins with the DC bin holding 0.006,
+  *below* the 1/24 = 0.042 a uniform spectrum would give. No LoS-vs-NLoS contrast
+  survives.
+- **Angular spread.** Only 8 antennas, so beamspace has 8 independent bins.
+  Zero-padding the FFT to 64 interpolates but adds no resolution. Array geometry
+  is also unstated — without confirmed half-wavelength ULA spacing the
+  FFT-beamspace reading is not even the right transform.
+- **Per-antenna K spread.** K is ~0.006-0.01 everywhere, so both classes look
+  Rayleigh by this estimator. The spread of a near-zero quantity is noise. This is
+  also why every K-based feature is weak while the delay-domain ones are strong.
+
+Features kept in the module (they cost nothing at inference and the private set
+behaves nothing like these 10 samples), but marked as measured-neutral.
+
 ### Threshold tuning does not help
 
 The best model sits at precision 1.000, recall 0.750, so lowering the decision
