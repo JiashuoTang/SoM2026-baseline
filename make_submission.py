@@ -17,7 +17,9 @@ import scipy.io as sio
 
 DATA = Path('dataset')
 OUT = Path('experiments'); OUT.mkdir(exist_ok=True)
-TASK1_PRED = Path('experiments/notebook_task1/submission.json')
+# physics+WiFo2 model, macro F1 0.880 seed-averaged (notebook/task1_physics.ipynb).
+# The WiFo2-only baseline head scored 0.428 and lives in experiments/notebook_task1/.
+TASK1_PRED = Path('experiments/task1_physics/submission.json')
 
 
 def load_mat(path, key):
