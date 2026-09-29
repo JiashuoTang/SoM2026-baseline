@@ -6,7 +6,7 @@
 
 **SoM Challenge 2026: Wireless Foundation Model-Empowered Multi-Modal Sensing and Communications** aims to further investigate the potential of wireless foundation models for multi-modal sensing and communication tasks via Synesthesia of Machines (SoM).
 
-### Task
+### Tasks
 
 * **Task 1 – LoS/NLoS scenario classification:** predict whether a radio link contains a Line-of-Sight path.
 * **Task 2 – Multi-modal-enhanced channel prediction:** predict the CSI over the remaining $$K-K_1$$ subcarriers from the CSI over the first $$K_1$$ subcarriers, surrounding RGB images observed by the UE, and its location.
@@ -28,7 +28,7 @@
 
 ---
 
-## 2) Dataset Structure & File Formats
+## 2) Dataset Structure
 
 Download the official SoM2026 dataset from [Dataset](https://huggingface.co/datasets/pku-pcni-lab/WiFo-2-SoM-Challenge) and place it under `./dataset/`.
 
@@ -175,7 +175,7 @@ This project is released under the **Apache 2.0** License (unless otherwise spec
 
 ---
 
-## 10) Contact
+## 8) Contact
 
 For questions or issues, please open a GitHub Issue or reach the organizers at:
 
