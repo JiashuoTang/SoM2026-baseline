@@ -167,6 +167,20 @@ Run the following command to obtain the model complexity results for this baseli
 python flops.py
 ```
 
+The fine-tuned parameter ratio must satisfy:
+
+$$
+\text{Fine-tuned parameter ratio}=\frac{\text{Total number of fine-tuned parameters}}
+{\text{Total number of parameters three tasks need}}
+< 0.20.
+$$
+
+For this baseline, `flops_log.txt` shows:
+
+$$
+\text{Fine-tuned parameter ratio}=\frac{49,154+97,792+1,351,467}{15,713,661}\approx 0.095.
+$$
+
 ---
 
 ## 7) License
