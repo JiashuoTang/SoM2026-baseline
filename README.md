@@ -19,8 +19,8 @@
 | Generator           | QuaDRiGa      | SynthSoM      | SynthSoM      |
 | Scenario            | UMi / UMa     | Cross road    | Forking road  |
 | Training Samples    | 10            | 500           | 1000          |
-| Input Dim.          | (24, 8, 128)  | CSI: (128, 64)<br>RGB: (3, 224, 224)<br>Position: (2) | CSI: (32, 64)<br>RGB: (3, 224, 224) |
-| Output Dim.         | (2)           | (128, 64)     | (1, 224, 224) |
+| Input Dim.          | (24, 8, 128)  | CSI: (128, 64)<br>RGB: (3, 224, 224)<br>Position: (2) | CSI: (32, 64)<br>RGB: (3, 1080, 1920) |
+| Output Dim.         | (2)           | (128, 64)     | (1, 1080, 1920) |
 | Config.             | SNR = 15 dB   | RSF position: (-72.4, 165.7)<br>SNR = 20 dB | RSF position: (175.6, -49.3) |
 | Metric              | F1 score      | NMSE          | MAE           |
 
@@ -118,8 +118,8 @@ Using the official dataset and the default baseline, the test performance is app
 | Task              | Metric         | Baseline Result |
 | ----------------- | -------------- | --------------- |
 | Task 1            | F1 score       | 0.62            |
-| Task 2            | NMSE           | 0.128           |
-| Task 3            | MAE (m)        | 9.79            |
+| Task 2            | NMSE           | 0.078           |
+| Task 3            | MAE (m)        |             |
 
 > Minor deviations may occur because of differences in random seeds, hardware, CUDA versions, and software environments.
 
