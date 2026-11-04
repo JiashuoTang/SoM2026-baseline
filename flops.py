@@ -100,6 +100,7 @@ def report_task(name, wrapper, inputs, args):
     print(f"FLOPs                   : {flops:,} ({flops / 1e9:.6f} GFLOPs)\n"
           f"MACs                    : {macs:,} ({macs / 1e9:.6f} GMACs)\n"
           f"Params(total/fine-tuned): {total_params:,} / {trainable_params:,}")
+    return trainable_params
 
 
 def main():
@@ -128,26 +129,32 @@ def main():
     task3_channel = torch.randn(batch_size, 2, 32, 64, device=device)
     task3_rgb = torch.randn(batch_size, 3, 1080, 1920, device=device)
 
-    report_task(
+    trainable_params_t1 = report_task(
         name="Task 1: LoS/NLoS classification",
         wrapper=TaskWrapper(model, task_id=1).to(device).eval(),
         inputs=(task1_channel,),
         args=args
     )
 
-    report_task(
+    trainable_params_t2 = report_task(
         name="Task 2: MM-aided channel prediction",
         wrapper=TaskWrapper(model, task_id=2).to(device).eval(),
         inputs=(task2_channel, task2_rgb, task2_pos),
         args=args
     )
 
-    report_task(
+    trainable_params_t3 = report_task(
         name="Task 3: CSI-aided depth estimation",
         wrapper=TaskWrapper(model, task_id=3).to(device).eval(),
         inputs=(task3_channel, task3_rgb),
         args=args
     )
+
+    fine_tuned_params = trainable_params_t1 + trainable_params_t2 + trainable_params_t3
+    total_params = sum(param.numel() for param in model.parameters())
+    ratio = fine_tuned_params / total_params
+    print("=" * 80)
+    print(f"Fine-tuned parameter ratio: {fine_tuned_params:,} / {total_params:,} = {ratio:.6f}")
 
 
 if __name__ == "__main__":
