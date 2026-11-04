@@ -293,6 +293,9 @@ class FastDepthV2(nn.Module):
     self.encoder= MobileNetV2_Encoder()
     self.decoder = NNConv5_DecoderV2(kernel_size)
   def forward(self,x,csi_feature=None):
+    height, width = x.shape[-2:]
+    x = F.pad(x, (0, (-width) % 32, 0, (-height) % 32), mode='replicate')
+
     x=self.encoder.enc_layer0(x)
     x=self.encoder.enc_layer1(x)
     layer1=x
@@ -324,4 +327,4 @@ class FastDepthV2(nn.Module):
     x= F.interpolate(self.decoder.conv4(x), scale_factor=2, mode='nearest')
     x = x+layer1
     x= F.interpolate(self.decoder.conv5(x), scale_factor=2, mode='nearest')
-    return self.decoder.output(x)
+    return self.decoder.output(x)[..., :height, :width]
