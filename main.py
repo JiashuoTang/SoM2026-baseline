@@ -42,7 +42,6 @@ def create_argparser():
         wifo_weights = './weights/model_best.pkl',
         fastdepth_weights = './weights/FastDepthV2_L1_Best.pth',
         process_name = 'process_name',
-        snr_db = 25,
         csi_enhance = 1,
         rgb_pos_enhance = 1,
 
@@ -57,10 +56,10 @@ def create_argparser():
         # training parameters
         lr = 1e-5,
         min_lr = 1e-6,
-        epochs = 200,
+        epochs = 1000,
         early_stop = 5,
         weight_decay = 0,
-        batch_size = 64,
+        batch_size = 16,
         log_interval = 5,
         device_id = '0',
         machine = 'machine_name',
@@ -81,7 +80,7 @@ def main():
     setup_init(100)
 
     train_data, test_data = data_load(args)
-
+    
     args.folder = '{}_Task{}_{}_{}/'.format(args.task, args.task_id, args.size, args.note)
     args.model_path = './experiments/{}'.format(args.folder)
     logdir = "./logs/{}".format(args.folder)
@@ -92,7 +91,7 @@ def main():
     model = WiFo2_model(args=args).to(device)
 
     msg = model.load_state_dict(torch.load(args.wifo_weights, map_location=device), strict=False)
-    # print(msg)
+    print(msg)
     model = freeze_wifo(args, model, args.task_id)
 
     # 优化器 + lr调度器
@@ -117,7 +116,7 @@ def main():
     ).run()
 
 
-def freeze_wifo(args, model: WiFo2, task_id):    
+def freeze_wifo(args, model: WiFo2, task_id):
     for param in model.parameters():
         param.requires_grad = False
     if task_id == 1:
@@ -143,7 +142,6 @@ def freeze_wifo(args, model: WiFo2, task_id):
                 param.requires_grad = True
             for param in model.Fine_Tune_Layer1_DE.parameters():
                 param.requires_grad = True
-    
     return model
 
 
