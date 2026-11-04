@@ -81,7 +81,7 @@ def data_load_task_1(args):
 
 
 class Dataset_task_2(Dataset):
-    def __init__(self, file_path, itr=500, SEED=42, is_show=1, dataset_name="test", snr_db=None):
+    def __init__(self, file_path, itr=500, SEED=42, is_show=1, dataset_name="test"):
         super(Dataset_task_2, self).__init__()
         # Shuffle and Segmentation Dateset
         db = hdf5storage.loadmat(file_path + f'/X_{dataset_name}_prev.mat')[f'X_{dataset_name}_prev']
@@ -102,8 +102,6 @@ class Dataset_task_2(Dataset):
         self.imgs = torch.tensor(db2, dtype=torch.float32).permute(0, 3, 1, 2)
         self.imgs = F.interpolate(self.imgs, size=(224, 224), mode='bilinear', align_corners=False) / 255.0
         self.location = torch.tensor(db3, dtype=torch.float32)
-
-        # self.H_prev += torch.randn_like(self.H_prev) * torch.sqrt(torch.mean(self.H_prev**2) * 10**(-snr_db/10.0))
         
         self.H_prev = self.H_prev[idx, ...]
         self.H_target = self.H_target[idx, ...]
@@ -132,8 +130,8 @@ class Dataset_task_2(Dataset):
 
 
 def data_load_task_2(args):
-    train_data = Dataset_task_2(args.data_path + '/Task2', itr=500, dataset_name="train", snr_db=args.snr_db)
-    test_data = Dataset_task_2(args.data_path + '/Task2', itr=100, dataset_name="test", snr_db=args.snr_db)
+    train_data = Dataset_task_2(args.data_path + '/Task2', itr=500, dataset_name="train")
+    test_data = Dataset_task_2(args.data_path + '/Task2', itr=100, dataset_name="test")
 
     train_data = th.utils.data.DataLoader(train_data, num_workers=8, batch_size=args.batch_size, shuffle=False,
                                           pin_memory=False, prefetch_factor=4)
@@ -160,11 +158,11 @@ class Dataset_task_3(Dataset):
         self.H_full = LoadBatch(self.H_full)
         
         self.imgs = torch.tensor(db2, dtype=torch.float32).permute(0, 3, 1, 2)
-        self.imgs = self.imgs[:, :, 428:652, 848:1072] / 255.0
+        self.imgs = self.imgs / 255.0
         
         self.depth = torch.tensor(db3, dtype=torch.float32)
         self.depth = torch.flip(self.depth, dims=[1])
-        self.depth = self.depth[:, 428:652, 848:1072].unsqueeze(1)
+        self.depth = self.depth.unsqueeze(1)
         
         self.H_full = self.H_full[idx, ...]
         self.imgs = self.imgs[idx, ...]
