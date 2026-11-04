@@ -57,7 +57,7 @@ class TrainLoop:
                 if task_id == 1:
                     loss = self.criterion_t1(pred, batch['label'].squeeze())
                 elif task_id == 2:
-                    loss = self.criterion_t2(pred[..., 32:], batch['H_target'][..., 32:])
+                    loss = self.criterion_t2(pred, batch['H_target'])
                 elif task_id == 3:
                     valid = (batch['depth'] > 0) & (batch['depth'] < 50)
                     loss = self.criterion_t3(pred[valid], batch['depth'][valid])
@@ -78,9 +78,8 @@ class TrainLoop:
                     result = 1 - f1_macro
                     loss_list.append(result)
                 elif task_id == 2:
-                    # cal NMSE
-                    pred = pred[..., 32:]
-                    target = batch['H_target'][..., 32:]
+                    # cal NMSE over all subcarriers
+                    target = batch['H_target']
                     diff = torch.abs(pred - target) ** 2
                     power = torch.abs(target) ** 2
                     nmse = torch.sum(diff, dim=tuple(range(1, diff.ndim))) / torch.sum(power, dim=tuple(range(1, power.ndim)))
