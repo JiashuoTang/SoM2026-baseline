@@ -1,5 +1,6 @@
 # coding=utf-8
 import numpy as np
+import cv2
 import torch as th
 import os
 import json
@@ -156,10 +157,12 @@ class Dataset_task_3(Dataset):
 
         self.H_full = torch.tensor(db, dtype=torch.complex128)
         self.H_full = LoadBatch(self.H_full)
-        
+
+        db2 = np.stack([cv2.resize(image, (224, 224), interpolation=cv2.INTER_AREA) for image in db2])
         self.imgs = torch.tensor(db2, dtype=torch.float32).permute(0, 3, 1, 2)
         self.imgs = self.imgs / 255.0
-        
+
+        db3 = np.stack([cv2.resize(image, (224, 224), interpolation=cv2.INTER_AREA) for image in db3])
         self.depth = torch.tensor(db3, dtype=torch.float32)
         self.depth = torch.flip(self.depth, dims=[1])
         self.depth = self.depth.unsqueeze(1)
