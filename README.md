@@ -139,10 +139,10 @@ N1 = N2 = N3 = 4
 # Load or compute your predictions here:
 pred_t1 = np.random.randint(0, 2, size=(N1,))   # classes or probabilities
 pred_t2 = np.random.randn(N2, 2, 128, 64)       # full channel reconstructions
-pred_t3 = np.random.randn(N3, 1, 224, 224)      # (1, H, W) in meters
+pred_t3 = np.random.randn(N3, 1, 1080, 1920)    # (1, H, W) in meters
 # Model complexity
 param = 5.45
-flops = 1.54
+flops = 9.88
 
 payload = {
     "task1": pred_t1.tolist(),
