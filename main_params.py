@@ -85,10 +85,15 @@ def main():
     model_T1 = build_model_T1(args=args).to(device)
     model_T2 = build_model_T2(args=args).to(device)
     model_T3 = build_model_T3(args=args).to(device)
+    params_T1 = sum(p.numel() for p in model_T1.parameters())
+    params_T2 = sum(p.numel() for p in model_T2.parameters())
+    params_T3 = sum(p.numel() for p in model_T3.parameters())
+    avg_params = (params_T1 + params_T2 + params_T3) / 3
 
-    print(f'Task 1 number of parameters: {sum(p.numel() for p in model_T1.parameters()) / 1e6} M')
-    print(f'Task 2 number of parameters: {sum(p.numel() for p in model_T2.parameters()) / 1e6} M')
-    print(f'Task 3 number of parameters: {sum(p.numel() for p in model_T3.parameters()) / 1e6} M')
+    print(f'Task 1 number of parameters: {params_T1 / 1e6:.6f} M')
+    print(f'Task 2 number of parameters: {params_T2 / 1e6:.6f} M')
+    print(f'Task 3 number of parameters: {params_T3 / 1e6:.6f} M')
+    print(f'Average number of parameters over 3 tasks: {avg_params / 1e6:.6f} M')
 
 
 if __name__ == "__main__":
