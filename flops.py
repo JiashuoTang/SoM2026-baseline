@@ -7,7 +7,7 @@ import torch.nn as nn
 from calflops import calculate_flops
 from model import WiFo2_model
 from main import freeze_wifo
-device = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
 class _Tee:
@@ -71,7 +71,7 @@ def build_args(fastdepth_weights):
         csi_enhance=1,
         rgb_pos_enhance=1,
         fastdepth_weights=fastdepth_weights,
-        device_id = '2',
+        device_id = '0',
     )
 
 
@@ -110,7 +110,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--fastdepth_weights", type=str, default="./weights/FastDepthV2_L1_Best.pth")
     parser.add_argument("--batch_size", type=int, default=1)
-    parser.add_argument("--device_id", type=str, default="2")
+    parser.add_argument("--device_id", type=str, default="0")
     cli_args = parser.parse_args()
 
     global device
@@ -127,7 +127,7 @@ def main():
     task2_pos = torch.randn(batch_size, 2, device=device)
 
     task3_channel = torch.randn(batch_size, 2, 32, 64, device=device)
-    task3_rgb = torch.randn(batch_size, 3, 1080, 1920, device=device)
+    task3_rgb = task2_rgb
 
     trainable_params_t1, flops_t1 = report_task(
         name="Task 1: LoS/NLoS classification",
