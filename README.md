@@ -117,9 +117,9 @@ Using the official dataset and the default baseline, the test performance is app
 
 | Task              | Metric         | Baseline Result |
 | ----------------- | -------------- | --------------- |
-| Task 1            | F1 score       | 0.62            |
+| Task 1            | F1 score       | 0.622           |
 | Task 2            | NMSE           | 0.078           |
-| Task 3            | MAE (m)        |             |
+| Task 3            | MAE (m)        | 6.148           |
 
 > Minor deviations may occur because of differences in random seeds, hardware, CUDA versions, and software environments.
 
