@@ -171,8 +171,9 @@ Run the following command to obtain the ratio for this baseline (see `flops_log.
 ```bash
 python flops.py
 ```
+
 $$
-\text{Fine-tuned parameter ratio}=.
+Fine-tuned parameter ratio: 1,498,413 / 15,713,661 = 0.095357
 $$
 
 The submitted `param` and `flops` should be calculated using the **same** implementation as `main_params.py` and `flops.py`, respectively.
