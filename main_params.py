@@ -5,15 +5,11 @@ import os
 from model_T1 import WiFo2_model as build_model_T1
 from model_T2 import WiFo2_model as build_model_T2
 from model_T3 import WiFo2_model as build_model_T3
-from train import TrainLoop
 import setproctitle
 import torch
-from DataLoader import data_load
 from utils import *
 import torch
 import numpy as np
-from torch.utils.tensorboard import SummaryWriter
-from scheduler import FakeLR
 
 
 def setup_init(seed):
@@ -63,7 +59,7 @@ def create_argparser():
         weight_decay = 0,
         batch_size = 64,
         log_interval = 5,
-        device_id = '2',
+        device_id = '0',
         machine = 'machine_name',
         clip_grad = 0.05,
         lr_anneal_steps = 200,
