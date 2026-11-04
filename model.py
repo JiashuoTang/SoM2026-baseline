@@ -1305,7 +1305,7 @@ class WiFo2(nn.Module):
             if self.args.csi_enhance:
                 csi_feature = self.Fine_Tune_Layer0_DE(latent).squeeze(1)   # [B,512]
                 csi_feature = self.Fine_Tune_Layer1_DE(csi_feature) # [B,320]
-                pred = self.fast_depth(rgb, csi_feature[:, :, None, None])
+                pred = self.fast_depth(rgb, csi_feature[:, :, None, None].expand(-1, -1, 7, 7))
             else:
                 pred = self.fast_depth(rgb)
             return pred
