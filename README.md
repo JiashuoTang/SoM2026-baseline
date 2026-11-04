@@ -19,8 +19,8 @@
 | Generator           | QuaDRiGa      | SynthSoM      | SynthSoM      |
 | Scenario            | UMi / UMa     | Cross road    | Forking road  |
 | Training Samples    | 10            | 500           | 1000          |
-| Input Dim.          | (24, 8, 128)  | CSI: (128, 64)<br>RGB: (3, 224, 224)<br>Position: (2) | CSI: (32, 64)<br>RGB: (3, 1080, 1920) |
-| Output Dim.         | (2)           | (128, 64)     | (1, 1080, 1920) |
+| Input Dim.          | (24, 8, 128)  | CSI: (128, 64)<br>RGB: (3, 224, 224)<br>Position: (2) | CSI: (32, 64)<br>RGB: (3, 224, 224) |
+| Output Dim.         | (2)           | (128, 64)     | (1, 224, 224) |
 | Config.             | SNR = 15 dB   | RSF position: (-72.4, 165.7)<br>SNR = 20 dB | RSF position: (175.6, -49.3) |
 | Metric              | F1 score      | NMSE          | MAE           |
 
@@ -119,7 +119,7 @@ Using the official dataset and the default baseline, the test performance is app
 | ----------------- | -------------- | --------------- |
 | Task 1            | F1 score       | 0.622           |
 | Task 2            | NMSE           | 0.078           |
-| Task 3            | MAE (m)        | 6.148           |
+| Task 3            | MAE (m)        | 6.628           |
 
 > Minor deviations may occur because of differences in random seeds, hardware, CUDA versions, and software environments.
 
@@ -139,10 +139,10 @@ N1 = N2 = N3 = 4
 # Load or compute your predictions here:
 pred_t1 = np.random.randint(0, 2, size=(N1,))   # classes or probabilities
 pred_t2 = np.random.randn(N2, 2, 128, 64)       # full channel reconstructions
-pred_t3 = np.random.randn(N3, 1, 1080, 1920)    # (1, H, W) in meters
+pred_t3 = np.random.randn(N3, 1, 224, 224)      # (1, H, W) in meters
 # Model complexity
 param = 5.45
-flops = 9.88
+flops = 1.54
 
 payload = {
     "task1": pred_t1.tolist(),
