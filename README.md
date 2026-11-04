@@ -159,27 +159,25 @@ with open("submission.json", "w") as f:
 
 ### 6.2 Model Complexity
 
-The number of trainable parameters and FLOPs should be calculated using the **same** implementation and `calflops` as `flops.py`.
+The fine-tuned parameter ratio must be strictly below 20%.
 
-Run the following command to obtain the model complexity results for this baseline (see `flops_log.txt`):
+$$
+\text{Fine-tuned parameter ratio}=\frac{\text{Total number of fine-tuned parameters}}
+{\text{Total number of parameters three tasks need}}.
+$$
+
+Run the following command to obtain the ratio for this baseline (see `flops_log.txt`):
 
 ```bash
 python flops.py
 ```
-
-The fine-tuned parameter ratio must satisfy:
-
 $$
-\text{Fine-tuned parameter ratio}=\frac{\text{Total number of fine-tuned parameters}}
-{\text{Total number of parameters three tasks need}}
-< 0.20.
+\text{Fine-tuned parameter ratio}=.
 $$
 
-For this baseline, `flops_log.txt` shows:
+The submitted `param` and `flops` should be calculated using the **same** implementation as `main_params.py` and `flops.py`, respectively.
 
-$$
-\text{Fine-tuned parameter ratio}=\frac{49,154+97,792+1,351,467}{15,713,661}\approx 0.095.
-$$
+**Note:** The FLOPs of the model’s forward inference should be calculated using `calflops`, and the FLOPs of any additional processing (e.g. FFT), should also be included in the submitted `flops`.
 
 ---
 
