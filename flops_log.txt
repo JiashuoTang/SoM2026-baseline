@@ -16,8 +16,8 @@ MACs                    : 1,911,851,648 (1.911852 GMACs)
 Params(total/fine-tuned): 15,713,661 / 97,792
 ================================================================================
 Task 3: CSI-aided depth estimation
-Input shapes            : [(1, 2, 32, 64), (1, 3, 224, 224)]
-Output shape            : (1, 1, 224, 224)
-FLOPs                   : 657,913,144 (0.657913 GFLOPs)
-MACs                    : 320,490,560 (0.320491 GMACs)
+Input shapes            : [(1, 2, 32, 64), (1, 3, 1080, 1920)]
+Output shape            : (1, 1, 1080, 1920)
+FLOPs                   : 25,680,418,872 (25.680419 GFLOPs)
+MACs                    : 12,500,313,600 (12.500314 GMACs)
 Params(total/fine-tuned): 15,713,661 / 1,351,467
